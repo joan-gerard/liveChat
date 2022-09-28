@@ -1,4 +1,4 @@
-# Live Chat Websocket
+# Live Chat Websocket - AWS Serverless
 
 DESC HERE
 

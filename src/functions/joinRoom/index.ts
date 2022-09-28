@@ -7,17 +7,29 @@ import { websocket } from "@libs/websocket";
 
 export const handler = async (event: APIGatewayProxyEvent) => {
   try {
-    const body = JSON.parse(event.body);
+    const { name, roomCode } = JSON.parse(event.body);
     const tableName = process.env.roomConnectionTable;
 
     const { connectionId, domainName, stage } = event.requestContext;
 
-    console.log({ connectionId, domainName, stage, body });
+    console.log({ connectionId, domainName, stage });
 
-    if (!body.name) {
+    if (!name) {
       await websocket.send({
         data: {
-          message: "You need a name on createRoom",
+          message: "You need a name on joinRoom",
+          type: "err",
+        },
+        connectionId,
+        domainName,
+        stage,
+      });
+      return formatJSONResponse({});
+    }
+    if (!roomCode) {
+      await websocket.send({
+        data: {
+          message: "You need a roomCode on joinRoom",
           type: "err",
         },
         connectionId,
@@ -28,8 +40,26 @@ export const handler = async (event: APIGatewayProxyEvent) => {
     }
 
     console.log({ message: "I AM HERE" });
+    const roomUsers = await dynamo.query({
+      pkValue: roomCode,
+      tableName,
+      index: "index1",
+      limit: 1
+    });
 
-    const roomCode = uuid().slice(0, 8);
+    if (roomUsers.length === 0) {
+        await websocket.send({
+          data: {
+            message: "No room with that code exists",
+            type: "err",
+          },
+          connectionId,
+          domainName,
+          stage,
+        });
+        return formatJSONResponse({});
+      }
+  
 
     const data: UserConnectionRecord = {
       id: connectionId,
@@ -37,7 +67,7 @@ export const handler = async (event: APIGatewayProxyEvent) => {
       sk: connectionId,
 
       roomCode,
-      name: body.name,
+      name,
       domainName,
       stage,
     };

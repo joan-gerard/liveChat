@@ -42,6 +42,7 @@ export const dynamo = {
     pkKey = "pk",
     skValue,
     skKey = "sk",
+    limit,
   }: {
     tableName: string;
     index: string;
@@ -50,6 +51,7 @@ export const dynamo = {
     skValue?: string;
     skKey?: string;
     sortAscending?: boolean;
+    limit?: number;
   }) => {
     const skExpression = skValue ? ` AND ${skKey} = :rangeValue` : "";
 
@@ -60,6 +62,7 @@ export const dynamo = {
       ExpressionAttributeValues: {
         ":hashValue": pkValue,
       },
+      Limit: limit,
     };
 
     if (skValue) {

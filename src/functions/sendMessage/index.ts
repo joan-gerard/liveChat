@@ -6,17 +6,17 @@ import { websocket } from "@libs/websocket";
 
 export const handler = async (event: APIGatewayProxyEvent) => {
   try {
-    const { name, roomCode } = JSON.parse(event.body);
+    const { message } = JSON.parse(event.body);
     const tableName = process.env.roomConnectionTable;
 
     const { connectionId, domainName, stage } = event.requestContext;
 
     console.log({ connectionId, domainName, stage });
 
-    if (!name) {
+    if (!message) {
       await websocket.send({
         data: {
-          message: "You need a name on joinRoom",
+          message: "You need to add a message on sendMessage action",
           type: "err",
         },
         connectionId,
@@ -25,10 +25,15 @@ export const handler = async (event: APIGatewayProxyEvent) => {
       });
       return formatJSONResponse({});
     }
-    if (!roomCode) {
+    const existingUser = await dynamo.get<UserConnectionRecord>(
+      connectionId,
+      tableName
+    );
+
+    if (!existingUser) {
       await websocket.send({
         data: {
-          message: "You need a roomCode on joinRoom",
+          message: "You need to create or join a room",
           type: "err",
         },
         connectionId,
@@ -38,52 +43,33 @@ export const handler = async (event: APIGatewayProxyEvent) => {
       return formatJSONResponse({});
     }
 
-    console.log({ message: "I AM HERE" });
-    const roomUsers = await dynamo.query({
+    const { roomCode } = existingUser;
+
+    const roomUsers = await dynamo.query<UserConnectionRecord>({
       pkValue: roomCode,
       tableName,
       index: "index1",
-      limit: 1
     });
 
-    if (roomUsers.length === 0) {
-        await websocket.send({
+    const websocketClient = websocket.createClient({ domainName, stage });
+    
+    const messagePromiseArray = roomUsers
+      .filter((targetUser) => {
+        return targetUser.id !== existingUser.id;
+      })
+      .map((user) => {
+        const { id: connectionId } = user;
+        return websocket.send({
           data: {
-            message: "No room with that code exists",
-            type: "err",
+            message,
+            from: existingUser.name,
           },
           connectionId,
-          domainName,
-          stage,
+          client: websocketClient,
         });
-        return formatJSONResponse({});
-      }
-  
+      });
 
-    const data: UserConnectionRecord = {
-      id: connectionId,
-      pk: roomCode,
-      sk: connectionId,
-
-      roomCode,
-      name,
-      domainName,
-      stage,
-    };
-
-    console.log({ message: "THE DATA", data });
-
-    await dynamo.write(data, tableName);
-
-    await websocket.send({
-      data: {
-        message: `You are now connected to room ${roomCode}`,
-        type: "info",
-      },
-      connectionId,
-      domainName,
-      stage,
-    });
+    await Promise.all(messagePromiseArray);
 
     return formatJSONResponse({});
   } catch (error) {

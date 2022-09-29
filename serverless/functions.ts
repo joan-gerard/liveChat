@@ -21,6 +21,16 @@ const functions: AWS["functions"] = {
       },
     ],
   },
+  sendMessage: {
+    handler: "src/functions/sendMessage/index.handler",
+    events: [
+      {
+        websocket: {
+          route: "sendMessage",
+        },
+      },
+    ],
+  },
 };
 
 export default functions;

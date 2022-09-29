@@ -22,7 +22,7 @@ export const dynamo = {
 
     return data;
   },
-  get: async (id: string, tableName: string) => {
+  get: async <T = Record<string, any>>(id: string, tableName: string) => {
     const params: GetCommandInput = {
       TableName: tableName,
       Key: {
@@ -33,9 +33,9 @@ export const dynamo = {
 
     const response = await dynamoClient.send(command);
 
-    return response.Item;
+    return response.Item as T;
   },
-  query: async ({
+  query: async <T = Record<string, any>>({
     tableName,
     index,
     pkValue,
@@ -72,6 +72,6 @@ export const dynamo = {
 
     const response = await dynamoClient.send(command);
 
-    return response.Items;
+    return response.Items as T[];
   },
 };

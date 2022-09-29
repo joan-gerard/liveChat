@@ -8,3 +8,9 @@ type UserConnectionRecord = {
   domainName: string;
   stage: string;
 };
+
+type Message = {
+  message?: string;
+  from?: string;
+  type?: string;
+};

@@ -8,7 +8,7 @@ This has been built into a messaging platform, where users can create or join an
 
 2. A Lambda function will create a room number and record the connection (along with the room number) into a DynamoDB table.
 
-3. As another user attempts to join that room (by entering username and a room number), a second Lambda will query the DynamoDB table and check that the room number that has been input exists before allowing the connection.
+3. As another user attempts to join that room (by entering username and an existing room number), a second Lambda will query the DynamoDB table and check that the room number that has been input exists before allowing the connection.
 
 4. A third Lambda is in charge of broadcasting messages to other users present in the room.
 
